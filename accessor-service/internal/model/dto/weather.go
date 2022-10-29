@@ -1,4 +1,4 @@
-package domain
+package dto
 
 import (
 	"math/rand"

@@ -3,6 +3,7 @@ module github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service
 go 1.18
 
 require (
+	github.com/Masterminds/squirrel v1.5.3
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/gin-gonic/gin v1.8.1
 	github.com/jackc/pgx v3.6.2+incompatible
@@ -19,6 +20,8 @@ require (
 	github.com/gofrs/uuid v4.3.0+incompatible // indirect
 	github.com/jackc/fake v0.0.0-20150926172116-812a484cc733 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
+	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lib/pq v1.10.7 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect

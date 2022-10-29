@@ -2,10 +2,12 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"github.com/gin-gonic/gin"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/config"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/gateways"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/handlers"
+	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/repositories"
 	"log"
 	"math/rand"
 	"net/http"
@@ -19,12 +21,14 @@ type App struct {
 
 	conf *config.Config
 
-	logger  *log.Logger
+	logger *log.Logger
+	db     *sql.DB
+
 	server  *gin.Engine
 	handler *handlers.Handler
 	gateway *gateways.Gateway
 	//service *services.Service
-	//repo    *repo.Repo
+	repo *repositories.Repo
 }
 
 func NewApp(conf *config.Config) *App {
@@ -55,10 +59,10 @@ func (app *App) init() {
 	app.initLogger()
 	app.initDB()
 
+	app.initRepo()
 	app.initGateway()
 	app.initHandler()
 	app.initService()
-	app.initRepo()
 
 	app.initServer()
 }
@@ -93,9 +97,15 @@ func (app *App) initGateway() {
 }
 
 func (app *App) initRepo() {
-
+	app.repo = repositories.NewRepo(app.db, app.logger)
 }
 
 func (app *App) initDB() {
+	db, err := sql.Open("sqlite3", "./init/db/database.db")
+	if err != nil {
+		panic(err)
+	}
 
+	app.db = db
+	defer db.Close()
 }

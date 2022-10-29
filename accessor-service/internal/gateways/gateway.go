@@ -2,7 +2,7 @@ package gateways
 
 import (
 	"encoding/json"
-	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/domain"
+	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/model/dto"
 	"io"
 	"log"
 	"net/http"
@@ -23,9 +23,7 @@ func NewGateway(client http.Client, token string, log *log.Logger) *Gateway {
 	}
 }
 
-func (g *Gateway) GetRandomPhoto() (*domain.ImageResp, error) {
-	var image = &domain.ImageResp{}
-
+func (g *Gateway) GetRandomPhoto() (image *dto.Image, err error) {
 	url := "https://api.unsplash.com/photos/random"
 	authHeader := "Client-ID " + g.token
 
@@ -34,7 +32,7 @@ func (g *Gateway) GetRandomPhoto() (*domain.ImageResp, error) {
 	req.Header.Set("Authorization", authHeader)
 
 	q := req.URL.Query()
-	q.Add("query", domain.RandomWeather())
+	q.Add("query", dto.RandomWeather())
 	req.URL.RawQuery = q.Encode()
 	g.log.Printf("Doing a req with url: %s", req.URL.String())
 
@@ -43,13 +41,13 @@ func (g *Gateway) GetRandomPhoto() (*domain.ImageResp, error) {
 	defer res.Body.Close()
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return image, err
 	}
 
 	err = json.Unmarshal(body, image)
 	if err != nil {
-		return nil, err
+		return image, err
 	}
 
-	return image, nil
+	return image, err
 }
