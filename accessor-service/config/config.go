@@ -16,9 +16,14 @@ type HTTPConfig struct {
 	RemoteTimeout time.Duration `env:"HTTP_REMOTE_TIMEOUT" envDefault:"10s"`
 }
 
+type Token struct {
+	UplashToken string `env:"UPLASH_TOKEN"`
+}
+
 type Config struct {
 	App
 	HTTPConfig
+	Token
 }
 
 func (c *Config) Parse() (err error) {
@@ -29,6 +34,10 @@ func (c *Config) Parse() (err error) {
 	}
 
 	if err = env.Parse(&c.HTTPConfig); err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	if err = env.Parse(&c.Token); err != nil {
 		return errors.Wrap(err, op)
 	}
 

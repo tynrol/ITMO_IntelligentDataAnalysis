@@ -4,8 +4,12 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/config"
+	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/gateways"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/handlers"
 	"log"
+	"math/rand"
+	"net/http"
+	"time"
 )
 
 type App struct {
@@ -18,6 +22,7 @@ type App struct {
 	logger  *log.Logger
 	server  *gin.Engine
 	handler *handlers.Handler
+	gateway *gateways.Gateway
 	//service *services.Service
 	//repo    *repo.Repo
 }
@@ -46,9 +51,11 @@ func (app *App) Close() {
 }
 
 func (app *App) init() {
+	rand.Seed(time.Now().UnixNano())
 	app.initLogger()
 	app.initDB()
 
+	app.initGateway()
 	app.initHandler()
 	app.initService()
 	app.initRepo()
@@ -60,6 +67,7 @@ func (app *App) initServer() {
 	app.server = gin.Default()
 
 	app.server.GET("/health", app.handler.Health)
+	app.server.GET("/photo", app.handler.GetRandPhoto)
 
 	err := app.server.Run(app.conf.Port)
 	if err != nil {
@@ -73,7 +81,7 @@ func (app *App) initLogger() {
 }
 
 func (app *App) initHandler() {
-	app.handler = handlers.NewHandler()
+	app.handler = handlers.NewHandler(app.gateway, app.logger)
 }
 
 func (app *App) initService() {
@@ -81,7 +89,7 @@ func (app *App) initService() {
 }
 
 func (app *App) initGateway() {
-
+	app.gateway = gateways.NewGateway(http.Client{}, app.conf.Token.UplashToken, app.logger)
 }
 
 func (app *App) initRepo() {
