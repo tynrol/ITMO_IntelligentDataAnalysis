@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/gin-gonic/gin"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/config"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/gateways"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/handlers"
@@ -27,8 +28,7 @@ type App struct {
 	server  *gin.Engine
 	handler *handlers.Handler
 	gateway *gateways.Gateway
-	//service *services.Service
-	repo *repositories.Repo
+	repo    *repositories.Repo
 }
 
 func NewApp(conf *config.Config) *App {
@@ -56,13 +56,13 @@ func (app *App) Close() {
 
 func (app *App) init() {
 	rand.Seed(time.Now().UnixNano())
+
 	app.initLogger()
 	app.initDB()
 
 	app.initRepo()
 	app.initGateway()
 	app.initHandler()
-	app.initService()
 
 	app.initServer()
 }
@@ -72,6 +72,7 @@ func (app *App) initServer() {
 
 	app.server.GET("/health", app.handler.Health)
 	app.server.GET("/photo", app.handler.GetRandPhoto)
+	app.server.POST("/photo", app.handler.PostPhoto)
 
 	err := app.server.Run(app.conf.Port)
 	if err != nil {
@@ -85,11 +86,7 @@ func (app *App) initLogger() {
 }
 
 func (app *App) initHandler() {
-	app.handler = handlers.NewHandler(app.gateway, app.logger)
-}
-
-func (app *App) initService() {
-
+	app.handler = handlers.NewHandler(app.gateway, app.repo, app.logger)
 }
 
 func (app *App) initGateway() {
@@ -101,11 +98,10 @@ func (app *App) initRepo() {
 }
 
 func (app *App) initDB() {
-	db, err := sql.Open("sqlite3", "./init/db/database.db")
+	db, err := sql.Open("sqlite3", "/home/tynrol/Code/GolandProjects/ITMO_IntelligentDataAnalysis/accessor-service/init/database.db")
 	if err != nil {
 		panic(err)
 	}
 
 	app.db = db
-	defer db.Close()
 }

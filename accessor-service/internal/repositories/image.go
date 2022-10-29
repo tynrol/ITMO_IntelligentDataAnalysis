@@ -56,12 +56,12 @@ func (r *Repo) Create(ctx context.Context, img domain.Image) error {
 	return nil
 }
 
-func (r *Repo) UpdatePathById(ctx context.Context, img domain.Image) (err error) {
+func (r *Repo) UpdatePathById(ctx context.Context, imgId string, path string) (err error) {
 	const op = "ImageRepository_UpdatePathById"
 
 	sql, args, err := squirrel.Update(tableName).
-		Set("path", img.Path).
-		Where(squirrel.Eq{"id": img.ID}).
+		Set("path", path).
+		Where(squirrel.Eq{"id": imgId}).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {

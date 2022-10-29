@@ -44,7 +44,7 @@ func (g *Gateway) GetRandomPhoto() (image *dto.Image, err error) {
 		return image, err
 	}
 
-	err = json.Unmarshal(body, image)
+	err = json.Unmarshal(body, &image)
 	if err != nil {
 		return image, err
 	}

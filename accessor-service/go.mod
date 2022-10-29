@@ -7,6 +7,7 @@ require (
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/gin-gonic/gin v1.8.1
 	github.com/jackc/pgx v3.6.2+incompatible
+	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/pkg/errors v0.9.1
 )
 

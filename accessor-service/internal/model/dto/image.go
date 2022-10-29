@@ -1,5 +1,10 @@
 package dto
 
+import (
+	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/model/domain"
+	"time"
+)
+
 type Image struct {
 	ID             string `json:"id"`
 	Width          int    `json:"width"`
@@ -21,4 +26,16 @@ type Image struct {
 		Download         string `json:"download"`
 		DownloadLocation string `json:"download_location"`
 	} `json:"links"`
+}
+
+func DtoToDomain(image *Image) *domain.Image {
+	return &domain.Image{
+		ID:          image.ID,
+		Width:       image.Width,
+		Height:      image.Height,
+		Description: image.Description,
+		Url:         image.Urls.Thumb,
+		CreatedAt:   time.Now(),
+	}
+
 }
