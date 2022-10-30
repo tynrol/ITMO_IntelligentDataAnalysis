@@ -24,8 +24,8 @@ type UserRepo struct {
 	log *log.Logger
 }
 
-func NewUserRepo(db *sql.DB, logger *log.Logger) *ImageRepo {
-	return &ImageRepo{
+func NewUserRepo(db *sql.DB, logger *log.Logger) *UserRepo {
+	return &UserRepo{
 		db:  db,
 		log: logger,
 	}

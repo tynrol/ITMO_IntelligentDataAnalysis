@@ -26,10 +26,11 @@ type App struct {
 	logger *log.Logger
 	db     *sql.DB
 
-	server  *gin.Engine
-	handler *handlers.Handler
-	gateway *gateways.Gateway
-	repo    *repositories.ImageRepo
+	server    *gin.Engine
+	handler   *handlers.Handler
+	gateway   *gateways.Gateway
+	imageRepo *repositories.ImageRepo
+	userRepo  *repositories.UserRepo
 }
 
 func NewApp(conf *config.Config) *App {
@@ -61,7 +62,7 @@ func (app *App) init() {
 	app.initLogger()
 	app.initDB()
 
-	app.initImageRepo()
+	app.initRepo()
 	app.initGateway()
 	app.initHandler()
 
@@ -90,15 +91,16 @@ func (app *App) initLogger() {
 }
 
 func (app *App) initHandler() {
-	app.handler = handlers.NewHandler(app.gateway, app.repo, app.conf.DatasetsPath, app.logger)
+	app.handler = handlers.NewHandler(app.gateway, app.userRepo, app.imageRepo, app.conf.DatasetsPath, app.logger)
 }
 
 func (app *App) initGateway() {
 	app.gateway = gateways.NewGateway(http.Client{}, app.conf.Token.UplashToken, app.logger)
 }
 
-func (app *App) initImageRepo() {
-	app.repo = repositories.NewImageRepo(app.db, app.logger)
+func (app *App) initRepo() {
+	app.imageRepo = repositories.NewImageRepo(app.db, app.logger)
+	app.userRepo = repositories.NewUserRepo(app.db, app.logger)
 }
 
 func (app *App) initDB() {

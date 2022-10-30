@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/gateways"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/model/dto"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/repositories"
@@ -13,18 +14,26 @@ import (
 )
 
 type Handler struct {
-	gateway *gateways.Gateway
-	repo    *repositories.ImageRepo
+	gateway   *gateways.Gateway
+	imageRepo *repositories.ImageRepo
+	userRepo  *repositories.UserRepo
 
 	datasetsPath string
 
 	log *log.Logger
 }
 
-func NewHandler(gateway *gateways.Gateway, repo *repositories.ImageRepo, path string, logger *log.Logger) *Handler {
+func NewHandler(
+	gateway *gateways.Gateway,
+	userRepo *repositories.UserRepo,
+	imageRepo *repositories.ImageRepo,
+	path string,
+	logger *log.Logger,
+) *Handler {
 	return &Handler{
 		gateway:      gateway,
-		repo:         repo,
+		userRepo:     userRepo,
+		imageRepo:    imageRepo,
 		datasetsPath: path,
 		log:          logger,
 	}
@@ -44,7 +53,7 @@ func (h *Handler) GetRandPhoto(c *gin.Context) {
 		return
 	}
 
-	err = h.repo.Create(ctx, *dto.ToDomain(image))
+	err = h.imageRepo.Create(ctx, *dto.ToDomain(image))
 	if err != nil {
 		c.IndentedJSON(500, err)
 		return
@@ -64,38 +73,23 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 		return
 	}
 
-	fileBody, err := h.gateway.GetPhotoPhoto(request.ImageUrl)
+	fileBody, err := h.gateway.GetPhoto(request.ImageUrl)
 	if err != nil {
 		c.IndentedJSON(411, err)
 		return
 	}
 
-	date := time.Now().Format("2006-01-02")
-	var uploadedPath string
-
-	switch request.Type {
-	case "SUNNY":
-		uploadedPath = h.datasetsPath + date + "/SUNNY/" + request.ImageId + ".jpeg"
-		break
-	case "CLOUDY":
-		uploadedPath = h.datasetsPath + date + "/CLOUDY/" + request.ImageId + ".jpeg"
-		break
-	case "RAIN":
-		uploadedPath = h.datasetsPath + date + "/RAIN/" + request.ImageId + ".jpeg"
-		break
-	case "SUNRISE":
-		uploadedPath = h.datasetsPath + date + "/SUNRISE/" + request.ImageId + ".jpeg"
-		break
-	case "WRONG":
-		c.IndentedJSON(http.StatusOK, "Non relevant picture")
-		return
-	default:
-		c.IndentedJSON(412, "Wrong weather type")
+	uploadPath, err := h.constructPath(request.Type, request.ImageId)
+	if err != nil {
+		c.IndentedJSON(412, err)
 		return
 	}
-	h.log.Printf("Upload path at %s", uploadedPath)
+	if uploadPath == "" {
+		c.IndentedJSON(200, nil)
+		return
+	}
 
-	f, err := os.Create(uploadedPath)
+	f, err := os.Create(uploadPath)
 	if err != nil {
 		c.IndentedJSON(413, err)
 		return
@@ -112,7 +106,7 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 		return
 	}
 
-	err = h.repo.UpdatePathById(ctx, request.ImageId, uploadedPath)
+	err = h.imageRepo.UpdatePathById(ctx, request.ImageId, uploadPath)
 	if err != nil {
 		c.IndentedJSON(413, err)
 		return
@@ -131,7 +125,7 @@ func (h *Handler) GetHoney(c *gin.Context) {
 		return
 	}
 
-	err = h.repo.Create(ctx, *dto.ToDomain(image))
+	err = h.imageRepo.Create(ctx, *dto.ToDomain(image))
 	if err != nil {
 		c.IndentedJSON(500, err)
 		return
@@ -139,4 +133,29 @@ func (h *Handler) GetHoney(c *gin.Context) {
 
 	c.IndentedJSON(http.StatusOK, image)
 	return
+}
+
+func (h *Handler) constructPath(weatherType string, imageId string) (path string, err error) {
+	const op = "ImageHandler_constructPath"
+	date := time.Now().Format("2006-01-02")
+
+	switch weatherType {
+	case "SUNNY":
+		path = h.datasetsPath + date + "/SUNNY/" + imageId + ".jpeg"
+		break
+	case "CLOUDY":
+		path = h.datasetsPath + date + "/CLOUDY/" + imageId + ".jpeg"
+		break
+	case "RAIN":
+		path = h.datasetsPath + date + "/RAIN/" + imageId + ".jpeg"
+		break
+	case "SUNRISE":
+		path = h.datasetsPath + date + "/SUNRISE/" + imageId + ".jpeg"
+		break
+	default:
+		return "", errors.Wrap(errors.New("Incorrect weather type"), op)
+	}
+	h.log.Printf("Upload path at %s", path)
+
+	return path, nil
 }

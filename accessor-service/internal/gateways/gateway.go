@@ -52,7 +52,7 @@ func (g *Gateway) GetRandomPhoto() (image *dto.Image, err error) {
 	return image, err
 }
 
-func (g *Gateway) GetPhotoPhoto(url string) (body []byte, err error) {
+func (g *Gateway) GetPhoto(url string) (body []byte, err error) {
 	req, _ := http.NewRequest("GET", url, nil)
 	res, _ := g.client.Do(req)
 
