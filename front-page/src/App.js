@@ -14,7 +14,6 @@ export default function App() {
   const userId = ReactSession.get("userId") ? ReactSession.get("userId") : uuidv4() ;
   ReactSession.set("userId", userId);
 
-  const [image, setImage] = React.useState([]);
   const [url, setUrl] = React.useState([]);
   const [imgId, setImgId] = React.useState([]); 
   const [smallUrl, setSmallUrl] = React.useState([]);
@@ -22,7 +21,7 @@ export default function App() {
 
   useEffect(() => {
     console.log("Welcome");
-    // getImage();
+    getHoneyImage();
   }, [""]);
 
   const maxNumber = 1;
@@ -43,6 +42,18 @@ export default function App() {
 
   const getImage = () => {
     axios.get("http://localhost:10000/photo")
+    .then((response)=>{
+      setUrl(response.data.urls.regular);
+      setSmallUrl(response.data.urls.thumb);
+      setImgId(response.data.id);
+    })
+    .catch(error => 
+      console.error(`Error: ${error}`)
+    );
+  }
+
+  const getHoneyImage = () => {
+    axios.get("http://localhost:10000/photo/honey")
     .then((response)=>{
       setUrl(response.data.urls.regular);
       setSmallUrl(response.data.urls.thumb);
