@@ -28,7 +28,14 @@ type Image struct {
 	} `json:"links"`
 }
 
-func DtoToDomain(image *Image) *domain.Image {
+type PostImage struct {
+	SessionId string `json:"session_id"`
+	ImageId   string `json:"image_id"`
+	ImageUrl  string `json:"image_url"`
+	Type      string `json:"type"`
+}
+
+func ToDomain(image *Image) *domain.Image {
 	return &domain.Image{
 		ID:          image.ID,
 		Width:       image.Width,
@@ -37,5 +44,4 @@ func DtoToDomain(image *Image) *domain.Image {
 		Url:         image.Urls.Thumb,
 		CreatedAt:   time.Now(),
 	}
-
 }

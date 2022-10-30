@@ -17,7 +17,7 @@ type HTTPConfig struct {
 }
 
 type Token struct {
-	UplashToken string `env:"UPLASH_TOKEN"`
+	UplashToken string `env:"UNSPLASH_TOKEN"`
 }
 
 type Config struct {

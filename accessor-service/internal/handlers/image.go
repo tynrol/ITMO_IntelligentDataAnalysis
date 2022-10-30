@@ -8,6 +8,7 @@ import (
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/repositories"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -36,12 +37,14 @@ func (h *Handler) GetRandPhoto(c *gin.Context) {
 
 	image, err := h.gateway.GetRandomPhoto()
 	if err != nil {
-		c.IndentedJSON(404, nil)
+		c.IndentedJSON(404, err)
+		return
 	}
 
-	err = h.repo.Create(ctx, *dto.DtoToDomain(image))
+	err = h.repo.Create(ctx, *dto.ToDomain(image))
 	if err != nil {
-		c.IndentedJSON(500, nil)
+		c.IndentedJSON(500, err)
+		return
 	}
 
 	c.IndentedJSON(http.StatusOK, image)
@@ -51,46 +54,69 @@ func (h *Handler) GetRandPhoto(c *gin.Context) {
 func (h *Handler) PostPhoto(c *gin.Context) {
 	ctx := context.Background()
 
-	id := c.Query("id")
-	weather := c.Query("weather")
+	var request dto.PostImage
 
-	multipartFileHeader, err := c.FormFile("file")
+	if err := c.BindJSON(&request); err != nil {
+		c.IndentedJSON(410, "Wrong weather type")
+		return
+	}
+
+	fileBody, err := h.gateway.GetPhotoPhoto(request.ImageUrl)
 	if err != nil {
-		c.IndentedJSON(http.StatusBadRequest, nil)
+		c.IndentedJSON(411, err)
+		return
 	}
 
 	date := time.Now().Format("2006-01-02")
 	var uploadedPath string
 
-	switch weather {
+	switch request.Type {
 	case "SUNNY":
-		uploadedPath = "/home/tynrol/Code/GolandProjects/ITMO_IntelligentDataAnalysis/accessor-service/datasets/dataset" + date + "/SUNNY/" + id + ".jpeg"
+		uploadedPath = "./datasets/dataset" + date + "/SUNNY/" + request.ImageId + ".jpeg"
 		break
 	case "CLOUDY":
-		uploadedPath = "/home/tynrol/Code/GolandProjects/ITMO_IntelligentDataAnalysis/accessor-service/datasets/dataset" + date + "/CLOUDY/" + id + ".jpeg"
+		uploadedPath = "./datasets/dataset" + date + "/CLOUDY/" + request.ImageId + ".jpeg"
 		break
 	case "RAIN":
-		uploadedPath = "/home/tynrol/Code/GolandProjects/ITMO_IntelligentDataAnalysis/accessor-service/datasets/dataset" + date + "/RAIN/" + id + ".jpeg"
+		uploadedPath = "./datasets/dataset" + date + "/RAIN/" + request.ImageId + ".jpeg"
 		break
 	case "SUNRISE":
-		uploadedPath = "/home/tynrol/Code/GolandProjects/ITMO_IntelligentDataAnalysis/accessor-service/datasets/dataset" + date + "/SUNRISE/" + id + ".jpeg"
+		uploadedPath = "./datasets/dataset" + date + "/SUNRISE/" + request.ImageId + ".jpeg"
 		break
 	case "SUNSET":
-		uploadedPath = "/home/tynrol/Code/GolandProjects/ITMO_IntelligentDataAnalysis/accessor-service/datasets/dataset" + date + "/SUNRISE/" + id + ".jpeg"
+		uploadedPath = "./datasets/dataset" + date + "/SUNRISE/" + request.ImageId + ".jpeg"
 		break
+	case "WRONG":
+		c.IndentedJSON(http.StatusOK, "Non relevant picture")
+		return
 	default:
-		c.IndentedJSON(http.StatusBadRequest, nil)
+		c.IndentedJSON(412, "Wrong weather type")
 		return
 	}
 	h.log.Printf("Upload path at %s", uploadedPath)
 
-	//transcation
-	err = c.SaveUploadedFile(multipartFileHeader, uploadedPath)
+	f, err := os.Create(uploadedPath)
 	if err != nil {
-		c.IndentedJSON(http.StatusBadRequest, err)
+		c.IndentedJSON(413, err)
 		return
 	}
-	h.repo.UpdatePathById(ctx, id, uploadedPath)
+	_, err = f.Write(fileBody)
+	if err != nil {
+		c.IndentedJSON(413, err)
+		f.Close()
+		return
+	}
+	err = f.Close()
+	if err != nil {
+		c.IndentedJSON(413, err)
+		return
+	}
+
+	err = h.repo.UpdatePathById(ctx, request.ImageId, uploadedPath)
+	if err != nil {
+		c.IndentedJSON(413, err)
+		return
+	}
 
 	c.IndentedJSON(http.StatusOK, nil)
 	return

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/gin-gonic/gin"
+
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/config"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/gateways"
@@ -70,6 +71,8 @@ func (app *App) init() {
 func (app *App) initServer() {
 	app.server = gin.Default()
 
+	app.server.Use(CORSMiddleware())
+
 	app.server.GET("/health", app.handler.Health)
 	app.server.GET("/photo", app.handler.GetRandPhoto)
 	app.server.POST("/photo", app.handler.PostPhoto)
@@ -79,6 +82,23 @@ func (app *App) initServer() {
 		app.logger.Fatalf("error while init server: %v \n", err)
 	}
 
+}
+
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Header("Access-Control-Allow-Methods", "POST,HEAD,PATCH, OPTIONS, GET, PUT")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
 }
 
 func (app *App) initLogger() {
@@ -98,7 +118,7 @@ func (app *App) initRepo() {
 }
 
 func (app *App) initDB() {
-	db, err := sql.Open("sqlite3", "/home/tynrol/Code/GolandProjects/ITMO_IntelligentDataAnalysis/accessor-service/init/database.db")
+	db, err := sql.Open("sqlite3", "./init/database.db")
 	if err != nil {
 		panic(err)
 	}
