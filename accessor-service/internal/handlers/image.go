@@ -57,7 +57,7 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 	var request dto.PostImage
 
 	if err := c.BindJSON(&request); err != nil {
-		c.IndentedJSON(410, "Wrong weather type")
+		c.IndentedJSON(410, "Cannot unmarshal req")
 		return
 	}
 
@@ -81,9 +81,6 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 		uploadedPath = "./datasets/dataset" + date + "/RAIN/" + request.ImageId + ".jpeg"
 		break
 	case "SUNRISE":
-		uploadedPath = "./datasets/dataset" + date + "/SUNRISE/" + request.ImageId + ".jpeg"
-		break
-	case "SUNSET":
 		uploadedPath = "./datasets/dataset" + date + "/SUNRISE/" + request.ImageId + ".jpeg"
 		break
 	case "WRONG":
