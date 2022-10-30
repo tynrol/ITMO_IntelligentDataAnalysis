@@ -4,6 +4,7 @@ import "time"
 
 type Image struct {
 	ID          string    `json:"id"`
+	Type        string    `json:"type"`
 	Width       int       `json:"width"`
 	Height      int       `json:"height"`
 	Description string    `json:"description"`
@@ -15,6 +16,7 @@ type Image struct {
 func (i *Image) ScanValues() []interface{} {
 	return []interface{}{
 		&i.ID,
+		&i.Type,
 		&i.Width,
 		&i.Height,
 		&i.Description,
@@ -27,6 +29,7 @@ func (i *Image) ScanValues() []interface{} {
 func (i *Image) Values() []interface{} {
 	return []interface{}{
 		i.ID,
+		i.Type,
 		i.Width,
 		i.Height,
 		i.Description,
@@ -34,4 +37,11 @@ func (i *Image) Values() []interface{} {
 		i.Path,
 		i.CreatedAt,
 	}
+}
+
+func (i *Image) IsValid() bool {
+	if i.ID == "" {
+		return false
+	}
+	return true
 }

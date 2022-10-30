@@ -65,7 +65,7 @@ func (r *UserRepo) GetBySessionId(ctx context.Context, sessionId string) (user d
 
 	rows := r.db.QueryRowContext(ctx, sql, args...)
 	err = rows.Scan(user.ScanValues()...)
-	if err != nil {
+	if err != nil && rows.Err() != nil {
 		return domain.User{}, errors.Wrap(err, op)
 	}
 

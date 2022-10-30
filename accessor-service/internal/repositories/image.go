@@ -14,6 +14,7 @@ const imagesTableName = "images"
 func imageColumns() []string {
 	return []string{
 		"id",
+		"type",
 		"width",
 		"height",
 		"description",
@@ -85,14 +86,36 @@ func (r *ImageRepo) GetById(ctx context.Context, imageId string) (image domain.I
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
+		return image, errors.Wrap(err, op)
+	}
+
+	rows := r.db.QueryRowContext(ctx, sql, args...)
+	err = rows.Scan(image.ScanValues()...)
+	if rows != nil && err != nil {
+		return image, errors.Wrap(err, op)
+	}
+
+	return image, err
+}
+
+func (r *ImageRepo) GetHoney(ctx context.Context) (image domain.Image, err error) {
+	const op = "ImageRepository_GetHoney"
+
+	sql, args, err := squirrel.Select(imageColumns()...).
+		From(imagesTableName).
+		Join(usersTableName + " ON images.session_id = users.session_id ").
+		Where(squirrel.Eq{"users.is_lying": false}).
+		PlaceholderFormat(squirrel.Dollar).
+		ToSql()
+	if err != nil {
 		return domain.Image{}, errors.Wrap(err, op)
 	}
 
 	rows := r.db.QueryRowContext(ctx, sql, args...)
 	err = rows.Scan(image.ScanValues()...)
-	if err != nil {
+	if err != nil && rows.Err() != nil {
 		return domain.Image{}, errors.Wrap(err, op)
 	}
 
-	return image, err
+	return image, nil
 }

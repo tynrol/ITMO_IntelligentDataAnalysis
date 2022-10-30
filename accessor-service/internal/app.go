@@ -90,8 +90,13 @@ func (app *App) initLogger() {
 	app.logger = log.Default()
 }
 
-func (app *App) initHandler() {
-	app.handler = handlers.NewHandler(app.gateway, app.userRepo, app.imageRepo, app.conf.DatasetsPath, app.logger)
+func (app *App) initDB() {
+	db, err := sql.Open("sqlite3", app.conf.DBPath)
+	if err != nil {
+		panic(err)
+	}
+
+	app.db = db
 }
 
 func (app *App) initGateway() {
@@ -103,13 +108,8 @@ func (app *App) initRepo() {
 	app.userRepo = repositories.NewUserRepo(app.db, app.logger)
 }
 
-func (app *App) initDB() {
-	db, err := sql.Open("sqlite3", app.conf.DBPath)
-	if err != nil {
-		panic(err)
-	}
-
-	app.db = db
+func (app *App) initHandler() {
+	app.handler = handlers.NewHandler(app.gateway, app.userRepo, app.imageRepo, app.conf.DatasetsPath, app.logger)
 }
 
 func CORSMiddleware() gin.HandlerFunc {

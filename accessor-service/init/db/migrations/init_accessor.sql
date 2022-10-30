@@ -1,3 +1,8 @@
+CREATE TABLE users (
+   session_id       TEXT PRIMARY KEY,
+   is_lying         TEXT
+);
+
 CREATE TABLE images (
     id              TEXT,
     session_id      TEXT,
@@ -8,10 +13,6 @@ CREATE TABLE images (
     url             TEXT NOT NULL,
     path            TEXT,
     created_at      TIMESTAMP,
-    PRIMARY KEY(id, session_id)
-);
-
-CREATE TABLE users (
-    session_id      TEXT PRIMARY KEY,
-    is_lying         TEXT
+    PRIMARY KEY(id, session_id),
+    FOREIGN KEY(session_id) REFERENCES users
 );

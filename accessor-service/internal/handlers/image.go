@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/gateways"
+	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/model/domain"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/model/dto"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/repositories"
 	"log"
@@ -39,21 +39,20 @@ func NewHandler(
 	}
 }
 
+// TODO: need to be done through probe
 func (h *Handler) Health(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, nil)
 	return
 }
 
 func (h *Handler) GetRandPhoto(c *gin.Context) {
-	ctx := context.Background()
-
 	image, err := h.gateway.GetRandomPhoto()
 	if err != nil {
 		c.IndentedJSON(404, err)
 		return
 	}
 
-	err = h.imageRepo.Create(ctx, *dto.ToDomain(image))
+	err = h.imageRepo.Create(c, *dto.ToDomain(image))
 	if err != nil {
 		c.IndentedJSON(500, err)
 		return
@@ -64,13 +63,25 @@ func (h *Handler) GetRandPhoto(c *gin.Context) {
 }
 
 func (h *Handler) PostPhoto(c *gin.Context) {
-	ctx := context.Background()
-
 	var request dto.PostImage
 
 	if err := c.BindJSON(&request); err != nil {
-		c.IndentedJSON(410, "Cannot unmarshal req")
+		c.IndentedJSON(400, "Cannot unmarshal req")
 		return
+	}
+
+	//user, err := h.userRepo.GetBySessionId(c, request.SessionId);
+	//if
+	if image, err := h.imageRepo.GetById(c, request.ImageId); image.IsValid() && err != nil {
+		newUser := domain.User{
+			SessionID: request.SessionId,
+			IsLying:   image.Type != request.Type,
+		}
+		err := h.userRepo.Create(c, newUser)
+		if err != nil {
+			c.IndentedJSON(410, err)
+			return
+		}
 	}
 
 	fileBody, err := h.gateway.GetPhoto(request.ImageUrl)
@@ -101,12 +112,13 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 		return
 	}
 	err = f.Close()
+
 	if err != nil {
 		c.IndentedJSON(413, err)
 		return
 	}
 
-	err = h.imageRepo.UpdatePathById(ctx, request.ImageId, uploadPath)
+	err = h.imageRepo.UpdatePathById(c, request.ImageId, uploadPath)
 	if err != nil {
 		c.IndentedJSON(413, err)
 		return
@@ -117,18 +129,19 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 }
 
 func (h *Handler) GetHoney(c *gin.Context) {
-	ctx := context.Background()
-
-	image, err := h.gateway.GetRandomPhoto()
+	image, err := h.imageRepo.GetHoney(c)
 	if err != nil {
 		c.IndentedJSON(404, err)
 		return
 	}
 
-	err = h.imageRepo.Create(ctx, *dto.ToDomain(image))
-	if err != nil {
-		c.IndentedJSON(500, err)
-		return
+	if !image.IsValid() {
+		randImage, err := h.gateway.GetRandomPhoto()
+		if err != nil {
+			c.IndentedJSON(404, err)
+			return
+		}
+		image = *dto.ToDomain(randImage)
 	}
 
 	c.IndentedJSON(http.StatusOK, image)
