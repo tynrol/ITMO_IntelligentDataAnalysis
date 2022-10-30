@@ -29,7 +29,7 @@ type App struct {
 	server  *gin.Engine
 	handler *handlers.Handler
 	gateway *gateways.Gateway
-	repo    *repositories.Repo
+	repo    *repositories.ImageRepo
 }
 
 func NewApp(conf *config.Config) *App {
@@ -61,7 +61,7 @@ func (app *App) init() {
 	app.initLogger()
 	app.initDB()
 
-	app.initRepo()
+	app.initImageRepo()
 	app.initGateway()
 	app.initHandler()
 
@@ -75,6 +75,7 @@ func (app *App) initServer() {
 
 	app.server.GET("/health", app.handler.Health)
 	app.server.GET("/photo", app.handler.GetRandPhoto)
+	app.server.GET("/photo/honey", app.handler.GetHoney)
 	app.server.POST("/photo", app.handler.PostPhoto)
 
 	err := app.server.Run(app.conf.Port)
@@ -82,6 +83,31 @@ func (app *App) initServer() {
 		app.logger.Fatalf("error while init server: %v \n", err)
 	}
 
+}
+
+func (app *App) initLogger() {
+	app.logger = log.Default()
+}
+
+func (app *App) initHandler() {
+	app.handler = handlers.NewHandler(app.gateway, app.repo, app.conf.DatasetsPath, app.logger)
+}
+
+func (app *App) initGateway() {
+	app.gateway = gateways.NewGateway(http.Client{}, app.conf.Token.UplashToken, app.logger)
+}
+
+func (app *App) initImageRepo() {
+	app.repo = repositories.NewImageRepo(app.db, app.logger)
+}
+
+func (app *App) initDB() {
+	db, err := sql.Open("sqlite3", app.conf.DBPath)
+	if err != nil {
+		panic(err)
+	}
+
+	app.db = db
 }
 
 func CORSMiddleware() gin.HandlerFunc {
@@ -99,29 +125,4 @@ func CORSMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
-}
-
-func (app *App) initLogger() {
-	app.logger = log.Default()
-}
-
-func (app *App) initHandler() {
-	app.handler = handlers.NewHandler(app.gateway, app.repo, app.logger)
-}
-
-func (app *App) initGateway() {
-	app.gateway = gateways.NewGateway(http.Client{}, app.conf.Token.UplashToken, app.logger)
-}
-
-func (app *App) initRepo() {
-	app.repo = repositories.NewRepo(app.db, app.logger)
-}
-
-func (app *App) initDB() {
-	db, err := sql.Open("sqlite3", "./init/database.db")
-	if err != nil {
-		panic(err)
-	}
-
-	app.db = db
 }

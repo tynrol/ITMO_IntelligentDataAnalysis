@@ -16,6 +16,11 @@ type HTTPConfig struct {
 	RemoteTimeout time.Duration `env:"HTTP_REMOTE_TIMEOUT" envDefault:"10s"`
 }
 
+type PathConfig struct {
+	DatasetsPath string `env:"DATASETS_PATH" envDefault:"./datasets/dataset"`
+	DBPath       string `env:"DB_PATH" envDefault:"./init/db/database.db"`
+}
+
 type Token struct {
 	UplashToken string `env:"UNSPLASH_TOKEN"`
 }
@@ -23,6 +28,7 @@ type Token struct {
 type Config struct {
 	App
 	HTTPConfig
+	PathConfig
 	Token
 }
 
@@ -34,6 +40,10 @@ func (c *Config) Parse() (err error) {
 	}
 
 	if err = env.Parse(&c.HTTPConfig); err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	if err = env.Parse(&c.PathConfig); err != nil {
 		return errors.Wrap(err, op)
 	}
 

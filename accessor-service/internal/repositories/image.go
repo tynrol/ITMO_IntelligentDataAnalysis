@@ -9,7 +9,7 @@ import (
 	"log"
 )
 
-const tableName = "Images"
+const imagesTableName = "images"
 
 func imageColumns() []string {
 	return []string{
@@ -23,23 +23,23 @@ func imageColumns() []string {
 	}
 }
 
-type Repo struct {
+type ImageRepo struct {
 	db *sql.DB
 
 	log *log.Logger
 }
 
-func NewRepo(db *sql.DB, logger *log.Logger) *Repo {
-	return &Repo{
+func NewImageRepo(db *sql.DB, logger *log.Logger) *ImageRepo {
+	return &ImageRepo{
 		db:  db,
 		log: logger,
 	}
 }
 
-func (r *Repo) Create(ctx context.Context, img domain.Image) error {
+func (r *ImageRepo) Create(ctx context.Context, img domain.Image) error {
 	const op = "ImageRepository_Create"
 
-	sql, args, err := squirrel.Insert(tableName).
+	sql, args, err := squirrel.Insert(imagesTableName).
 		Columns(imageColumns()...).
 		Values(img.Values()...).
 		PlaceholderFormat(squirrel.Dollar).
@@ -56,10 +56,10 @@ func (r *Repo) Create(ctx context.Context, img domain.Image) error {
 	return nil
 }
 
-func (r *Repo) UpdatePathById(ctx context.Context, imgId string, path string) (err error) {
+func (r *ImageRepo) UpdatePathById(ctx context.Context, imgId string, path string) (err error) {
 	const op = "ImageRepository_UpdatePathById"
 
-	sql, args, err := squirrel.Update(tableName).
+	sql, args, err := squirrel.Update(imagesTableName).
 		Set("path", path).
 		Where(squirrel.Eq{"id": imgId}).
 		PlaceholderFormat(squirrel.Dollar).
@@ -76,11 +76,11 @@ func (r *Repo) UpdatePathById(ctx context.Context, imgId string, path string) (e
 	return nil
 }
 
-func (r *Repo) GetById(ctx context.Context, imageId string) (image domain.Image, err error) {
+func (r *ImageRepo) GetById(ctx context.Context, imageId string) (image domain.Image, err error) {
 	const op = "ImageRepository_GetById"
 
 	sql, args, err := squirrel.Select(imageColumns()...).
-		From(tableName).
+		From(imagesTableName).
 		Where(squirrel.Eq{"id": imageId}).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()

@@ -14,16 +14,19 @@ import (
 
 type Handler struct {
 	gateway *gateways.Gateway
-	repo    *repositories.Repo
+	repo    *repositories.ImageRepo
+
+	datasetsPath string
 
 	log *log.Logger
 }
 
-func NewHandler(gateway *gateways.Gateway, repo *repositories.Repo, logger *log.Logger) *Handler {
+func NewHandler(gateway *gateways.Gateway, repo *repositories.ImageRepo, path string, logger *log.Logger) *Handler {
 	return &Handler{
-		gateway: gateway,
-		repo:    repo,
-		log:     logger,
+		gateway:      gateway,
+		repo:         repo,
+		datasetsPath: path,
+		log:          logger,
 	}
 }
 
@@ -72,16 +75,16 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 
 	switch request.Type {
 	case "SUNNY":
-		uploadedPath = "./datasets/dataset" + date + "/SUNNY/" + request.ImageId + ".jpeg"
+		uploadedPath = h.datasetsPath + date + "/SUNNY/" + request.ImageId + ".jpeg"
 		break
 	case "CLOUDY":
-		uploadedPath = "./datasets/dataset" + date + "/CLOUDY/" + request.ImageId + ".jpeg"
+		uploadedPath = h.datasetsPath + date + "/CLOUDY/" + request.ImageId + ".jpeg"
 		break
 	case "RAIN":
-		uploadedPath = "./datasets/dataset" + date + "/RAIN/" + request.ImageId + ".jpeg"
+		uploadedPath = h.datasetsPath + date + "/RAIN/" + request.ImageId + ".jpeg"
 		break
 	case "SUNRISE":
-		uploadedPath = "./datasets/dataset" + date + "/SUNRISE/" + request.ImageId + ".jpeg"
+		uploadedPath = h.datasetsPath + date + "/SUNRISE/" + request.ImageId + ".jpeg"
 		break
 	case "WRONG":
 		c.IndentedJSON(http.StatusOK, "Non relevant picture")
@@ -116,5 +119,24 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusOK, nil)
+	return
+}
+
+func (h *Handler) GetHoney(c *gin.Context) {
+	ctx := context.Background()
+
+	image, err := h.gateway.GetRandomPhoto()
+	if err != nil {
+		c.IndentedJSON(404, err)
+		return
+	}
+
+	err = h.repo.Create(ctx, *dto.ToDomain(image))
+	if err != nil {
+		c.IndentedJSON(500, err)
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, image)
 	return
 }
