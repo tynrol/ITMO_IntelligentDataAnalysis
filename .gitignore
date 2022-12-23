@@ -1,6 +1,8 @@
 .idea
 */.idea/
 */datasets/*
+*/models/*
+*/*.pt
 
 # dependencies
 */node_modules

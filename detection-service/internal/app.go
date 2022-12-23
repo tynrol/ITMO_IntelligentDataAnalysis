@@ -6,12 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/config"
-	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/gateways"
-	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/handlers"
-	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/repositories"
+	"github.com/tynrol/ITMO_IntelligentDataAnalysis/detection-service/config"
+	"github.com/tynrol/ITMO_IntelligentDataAnalysis/detection-service/internal/gateways"
+	"github.com/tynrol/ITMO_IntelligentDataAnalysis/detection-service/internal/handlers"
 	"log"
 	"math/rand"
 	"net/http"
@@ -25,14 +22,13 @@ type App struct {
 
 	conf *config.Config
 
-	logger *log.Logger
-	db     *sql.DB
+	logger     *log.Logger
+	db         *sql.DB
+	metricsMux *http.ServeMux
 
-	server    *gin.Engine
-	handler   *handlers.Handler
-	gateway   *gateways.Gateway
-	imageRepo *repositories.ImageRepo
-	userRepo  *repositories.UserRepo
+	server  *gin.Engine
+	handler *handlers.Handler
+	gateway *gateways.Gateway
 }
 
 func NewApp(conf *config.Config) *App {
@@ -60,10 +56,9 @@ func (app *App) Close() {
 
 func (app *App) init() {
 	rand.Seed(time.Now().UnixNano())
-
 	app.initLogger()
 	app.initMetrics()
-	app.initDB()
+	app.initModel()
 
 	app.initRepo()
 	app.initGateway()
@@ -79,40 +74,12 @@ func (app *App) initServer() {
 
 	app.server.GET("/metrics", prometheusHandler())
 	app.server.GET("/health", app.handler.Health)
-	app.server.GET("/photo", app.handler.GetRandPhoto)
-	app.server.POST("/photo", app.handler.PostPhoto)
+	app.server.POST("/detect", app.handler.Detect)
 
-	err := app.server.Run(app.conf.Port)
+	err := app.server.Run(app.conf.HTTPConfig.Port)
 	if err != nil {
 		app.logger.Fatalf("error while init server: %v \n", err)
 	}
-
-}
-
-func (app *App) initLogger() {
-	app.logger = log.Default()
-}
-
-func (app *App) initDB() {
-	db, err := sql.Open("sqlite3", app.conf.DBPath)
-	if err != nil {
-		panic(err)
-	}
-
-	app.db = db
-}
-
-func (app *App) initGateway() {
-	app.gateway = gateways.NewGateway(http.Client{}, app.conf.Token.UplashToken, app.logger)
-}
-
-func (app *App) initRepo() {
-	app.imageRepo = repositories.NewImageRepo(app.db, app.logger)
-	app.userRepo = repositories.NewUserRepo(app.db, app.logger)
-}
-
-func (app *App) initHandler() {
-	app.handler = handlers.NewHandler(app.gateway, app.userRepo, app.imageRepo, app.conf.DatasetsPath, app.logger)
 }
 
 func prometheusHandler() gin.HandlerFunc {
@@ -177,6 +144,25 @@ func (app *App) initMetrics() {
 		}
 	}()
 
+}
+
+func (app *App) initLogger() {
+	app.logger = log.Default()
+}
+
+func (app *App) initModel() {
+	//flag.StringVar(&app.model, "model", "/home/tynrol/Code/GoLandProjects/ITMO_IntelligentDataAnalysis/detection-service/models/model.pt", "Model weights for inference")
+}
+
+func (app *App) initGateway() {
+	app.gateway = gateways.NewGateway(http.Client{}, app.logger)
+}
+
+func (app *App) initRepo() {
+}
+
+func (app *App) initHandler() {
+	app.handler = handlers.NewHandler(app.gateway, app.logger)
 }
 
 func CORSMiddleware() gin.HandlerFunc {

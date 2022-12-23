@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -46,6 +47,8 @@ func (h *Handler) Health(c *gin.Context) {
 }
 
 func (h *Handler) GetRandPhoto(c *gin.Context) {
+	// 1 in 10 chance to give honey image
+	//k := rand.Intn(int(Rainy))
 	image, err := h.gateway.GetRandomPhoto()
 	if err != nil {
 		c.IndentedJSON(404, err)
@@ -70,8 +73,7 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 		return
 	}
 
-	//user, err := h.userRepo.GetBySessionId(c, request.SessionId);
-	//if
+	// rewrite to check if image honey and user exists
 	if image, err := h.imageRepo.GetById(c, request.ImageId); image.IsValid() && err != nil {
 		newUser := domain.User{
 			SessionID: request.SessionId,
@@ -95,9 +97,12 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 		c.IndentedJSON(412, err)
 		return
 	}
-	if uploadPath == "" {
-		c.IndentedJSON(200, nil)
-		return
+	dir := filepath.Dir(uploadPath)
+	if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+		err := os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 	f, err := os.Create(uploadPath)
@@ -159,8 +164,8 @@ func (h *Handler) constructPath(weatherType string, imageId string) (path string
 	case "CLOUDY":
 		path = h.datasetsPath + date + "/CLOUDY/" + imageId + ".jpeg"
 		break
-	case "RAIN":
-		path = h.datasetsPath + date + "/RAIN/" + imageId + ".jpeg"
+	case "RAINY":
+		path = h.datasetsPath + date + "/RAINY/" + imageId + ".jpeg"
 		break
 	case "SUNRISE":
 		path = h.datasetsPath + date + "/SUNRISE/" + imageId + ".jpeg"

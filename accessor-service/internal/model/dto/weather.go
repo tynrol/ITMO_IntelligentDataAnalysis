@@ -13,13 +13,14 @@ const (
 	Sunrise
 	Sunset
 	Rain
+	Rainy
 )
 
 func (w Weather) String() string {
-	return [...]string{"Sunny", "Sun", "Cloudy", "Sunrise", "Sunset", "Rain"}[w]
+	return [...]string{"Sunny", "Sun", "Cloudy", "Sunrise", "Sunset", "Rain", "Rainy"}[w]
 }
 
 func RandomWeather() string {
-	k := rand.Intn(int(Rain))
+	k := rand.Intn(int(Rainy + 1))
 	return Weather(k).String()
 }

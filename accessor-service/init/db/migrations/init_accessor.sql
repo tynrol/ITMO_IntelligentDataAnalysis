@@ -1,6 +1,6 @@
 CREATE TABLE users (
    session_id       TEXT PRIMARY KEY,
-   is_lying         TEXT
+   lied             INTEGER
 );
 
 CREATE TABLE images (
