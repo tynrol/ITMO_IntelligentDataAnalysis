@@ -32,7 +32,7 @@ export default function Detect() {
         formData.append("image", image[0].file);
         axios({
             method: "post",
-            url: "https://5a54-89-110-26-237.eu.ngrok.io/detect",
+            url: "https://ffdf-89-110-26-237.eu.ngrok.io/detect",
             data: formData,
             headers: {
                 Accept: 'application/json',

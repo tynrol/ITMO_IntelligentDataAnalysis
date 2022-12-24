@@ -14,6 +14,7 @@ const imagesTableName = "images"
 func imageColumns() []string {
 	return []string{
 		"id",
+		"session_id",
 		"type",
 		"width",
 		"height",
@@ -57,11 +58,13 @@ func (r *ImageRepo) Create(ctx context.Context, img domain.Image) error {
 	return nil
 }
 
-func (r *ImageRepo) UpdatePathById(ctx context.Context, imgId string, path string) (err error) {
+func (r *ImageRepo) UpdatePathById(ctx context.Context, imgId string, path string, imgType string, sessionId string) (err error) {
 	const op = "ImageRepository_UpdatePathById"
 
 	sql, args, err := squirrel.Update(imagesTableName).
 		Set("path", path).
+		Set("type", imgType).
+		Set("session_id", sessionId).
 		Where(squirrel.Eq{"id": imgId}).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
@@ -103,8 +106,6 @@ func (r *ImageRepo) GetHoney(ctx context.Context) (image domain.Image, err error
 
 	sql, args, err := squirrel.Select(imageColumns()...).
 		From(imagesTableName).
-		Join(usersTableName + " ON images.session_id = users.session_id ").
-		Where(squirrel.Eq{"users.is_lying": false}).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {

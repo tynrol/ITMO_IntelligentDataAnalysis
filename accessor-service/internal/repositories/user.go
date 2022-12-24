@@ -14,7 +14,7 @@ const usersTableName = "users"
 func usersColumns() []string {
 	return []string{
 		"session_id",
-		"is_lying",
+		"lied",
 	}
 }
 
@@ -37,6 +37,26 @@ func (r *UserRepo) Create(ctx context.Context, user domain.User) error {
 	sql, args, err := squirrel.Insert(usersTableName).
 		Columns(usersColumns()...).
 		Values(user.Values()...).
+		PlaceholderFormat(squirrel.Dollar).
+		ToSql()
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	_, err = r.db.ExecContext(ctx, sql, args...)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	return nil
+}
+
+func (r *UserRepo) Update(ctx context.Context, user domain.User) error {
+	const op = "UsersRepository_Update"
+
+	sql, args, err := squirrel.Update(usersTableName).
+		Set("lied", user.Lied).
+		Where("session_id", user.SessionID).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
@@ -77,7 +97,7 @@ func (r *UserRepo) GetAllLying(ctx context.Context) (user domain.User, err error
 
 	sql, args, err := squirrel.Select(usersColumns()...).
 		From(usersTableName).
-		Where(squirrel.Eq{"is_lying": true}).
+		Where(squirrel.Eq{"lied": true}).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {

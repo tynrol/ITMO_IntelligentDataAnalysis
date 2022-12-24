@@ -28,7 +28,7 @@ export default function Access() {
         const jsonObj = JSON.stringify({ session_id: userId, image_id: imgId, image_url: smallUrl, type: event.target.name});
         axios({
             method: "post",
-            url: "https://a6e5-89-110-26-237.eu.ngrok.io/photo",
+            url: "https://8252-89-110-26-237.eu.ngrok.io/photo",
             data: jsonObj,
             headers: {'Content-Type': 'application/json'}
         })
@@ -39,7 +39,7 @@ export default function Access() {
     }
 
     const getImage = () => {
-        axios.get("https://a6e5-89-110-26-237.eu.ngrok.io/photo")
+        axios.get("https://8252-89-110-26-237.eu.ngrok.io/photo")
             .then((response)=>{
                 setUrl(response.data.urls.regular);
                 setSmallUrl(response.data.urls.thumb);

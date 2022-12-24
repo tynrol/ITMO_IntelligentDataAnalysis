@@ -8,6 +8,7 @@ import (
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/model/dto"
 	"github.com/tynrol/ITMO_IntelligentDataAnalysis/accessor-service/internal/repositories"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -48,7 +49,18 @@ func (h *Handler) Health(c *gin.Context) {
 
 func (h *Handler) GetRandPhoto(c *gin.Context) {
 	// 1 in 10 chance to give honey image
-	//k := rand.Intn(int(Rainy))
+	r := rand.Intn(10)
+	if r == 1 {
+		image, err := h.imageRepo.GetHoney(c)
+		if err != nil {
+			c.IndentedJSON(404, nil)
+			return
+		}
+		h.log.Printf("Return honey image with id %s", image.ID)
+		c.IndentedJSON(http.StatusOK, image)
+		return
+	}
+
 	image, err := h.gateway.GetRandomPhoto()
 	if err != nil {
 		c.IndentedJSON(404, err)
@@ -73,15 +85,49 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 		return
 	}
 
-	// rewrite to check if image honey and user exists
-	if image, err := h.imageRepo.GetById(c, request.ImageId); image.IsValid() && err != nil {
-		newUser := domain.User{
+	if request.Type == "WRONG" {
+		c.IndentedJSON(200, nil)
+		return
+	}
+
+	user, _ := h.userRepo.GetBySessionId(c, request.SessionId)
+	h.log.Printf("USER ID: %s", user.SessionID)
+	if !user.IsValid() {
+		user = domain.User{
 			SessionID: request.SessionId,
-			IsLying:   image.Type != request.Type,
+			Lied:      0,
 		}
-		err := h.userRepo.Create(c, newUser)
+		err := h.userRepo.Create(c, user)
 		if err != nil {
-			c.IndentedJSON(410, err)
+			c.IndentedJSON(409, err)
+			return
+		}
+	}
+
+	uploadPath, err := h.constructPath(request.Type, request.ImageId)
+	if err != nil {
+		c.IndentedJSON(412, err)
+		return
+	}
+
+	image, _ := h.imageRepo.GetById(c, request.ImageId)
+	if image.IsValid() {
+		//then honey image
+		h.log.Printf("CHECKING HONEY IMAGE %s", image.ID)
+		if image.Type != request.Type {
+			user.Lied = user.Lied + 1
+			err := h.userRepo.Update(c, user)
+			if err != nil {
+				c.IndentedJSON(410, err)
+				return
+			}
+			err = h.imageRepo.UpdatePathById(c, request.ImageId, uploadPath, request.Type, user.SessionID)
+			if err != nil {
+				c.IndentedJSON(414, err)
+				return
+			}
+
+			c.IndentedJSON(http.StatusOK, nil)
 			return
 		}
 	}
@@ -92,11 +138,6 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 		return
 	}
 
-	uploadPath, err := h.constructPath(request.Type, request.ImageId)
-	if err != nil {
-		c.IndentedJSON(412, err)
-		return
-	}
 	dir := filepath.Dir(uploadPath)
 	if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
 		err := os.MkdirAll(dir, os.ModePerm)
@@ -122,34 +163,15 @@ func (h *Handler) PostPhoto(c *gin.Context) {
 		c.IndentedJSON(413, err)
 		return
 	}
-
-	err = h.imageRepo.UpdatePathById(c, request.ImageId, uploadPath)
+	h.log.Printf("TYPE %s, SESSION ID %s", request.Type, user.SessionID)
+	err = h.imageRepo.UpdatePathById(c, request.ImageId, uploadPath, request.Type, user.SessionID)
 	if err != nil {
-		c.IndentedJSON(413, err)
+		h.log.Printf("SOME SHITTY ERROR %s", err)
+		c.IndentedJSON(414, err)
 		return
 	}
 
 	c.IndentedJSON(http.StatusOK, nil)
-	return
-}
-
-func (h *Handler) GetHoney(c *gin.Context) {
-	image, err := h.imageRepo.GetHoney(c)
-	if err != nil {
-		c.IndentedJSON(404, err)
-		return
-	}
-
-	if !image.IsValid() {
-		randImage, err := h.gateway.GetRandomPhoto()
-		if err != nil {
-			c.IndentedJSON(404, err)
-			return
-		}
-		image = *dto.ToDomain(randImage)
-	}
-
-	c.IndentedJSON(http.StatusOK, image)
 	return
 }
 
